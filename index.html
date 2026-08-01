@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Home Gym Plan</title>
+<style>
+  :root {
+    --bg: #f7f6f2;
+    --card: #ffffff;
+    --border: #e2e0d8;
+    --text: #2c2c2a;
+    --text-secondary: #6b6a63;
+    --accent: #185fa5;
+    --accent-bg: #e6f1fb;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    padding: 16px;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.5;
+  }
+  .wrap { max-width: 640px; margin: 0 auto; }
+  h1 { font-size: 20px; font-weight: 600; margin: 8px 0 4px; }
+  .subtitle { font-size: 13px; color: var(--text-secondary); margin-bottom: 16px; }
+  .phase-row { display: flex; gap: 8px; margin-bottom: 16px; }
+  .phase-btn {
+    flex: 1;
+    padding: 10px 8px;
+    font-size: 13px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: var(--card);
+    cursor: pointer;
+    color: var(--text);
+  }
+  .phase-btn.active { background: var(--accent-bg); border-color: var(--accent); color: var(--accent); font-weight: 600; }
+  .day-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 14px 16px;
+    margin-bottom: 10px;
+  }
+  .day-header { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 6px; }
+  .day-name { font-weight: 600; font-size: 15px; }
+  .day-focus { font-size: 12px; color: var(--text-secondary); }
+  .ex-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+    text-align: left;
+    padding: 10px 2px;
+    border: none;
+    border-top: 1px solid var(--border);
+    background: none;
+    font-size: 13px;
+    cursor: pointer;
+    color: var(--text);
+    font-family: inherit;
+  }
+  .day-card .ex-row:first-of-type { border-top: none; }
+  .ex-name { flex: 1; padding-right: 8px; }
+  .ex-sets { color: var(--text-secondary); white-space: nowrap; font-size: 12px; }
+  .chev { margin-left: 4px; color: var(--text-secondary); }
+  .modal-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.45);
+    align-items: flex-start;
+    justify-content: center;
+    padding-top: 12vh;
+    z-index: 10;
+  }
+  .modal-overlay.open { display: flex; }
+  .modal {
+    background: var(--card);
+    border-radius: 12px;
+    border: 1px solid var(--border);
+    padding: 20px;
+    max-width: 420px;
+    width: 90%;
+    max-height: 70vh;
+    overflow-y: auto;
+  }
+  .modal-top { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 4px; }
+  .modal-day { font-size: 12px; color: var(--text-secondary); margin: 0; }
+  .modal-name { font-weight: 600; font-size: 16px; margin: 2px 0 0; }
+  .modal-close { border: none; background: none; cursor: pointer; font-size: 18px; color: var(--text-secondary); padding: 4px; }
+  .modal-sets { font-size: 14px; color: var(--accent); font-weight: 600; margin: 10px 0 12px; }
+  .modal-form { font-size: 14px; color: var(--text-secondary); margin: 0 0 14px; }
+  .modal-video {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 13px;
+    color: #fff;
+    background: #d8352f;
+    padding: 8px 14px;
+    border-radius: 8px;
+    text-decoration: none;
+    font-weight: 600;
+  }
+  .video-note { font-size: 11px; color: var(--text-secondary); margin-top: 8px; }
+  footer { font-size: 11px; color: var(--text-secondary); text-align: center; margin: 24px 0 8px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Home gym plan</h1>
+  <p class="subtitle">6 days/week, Sun-Fri &middot; Saturday rest &middot; tap an exercise for form + sets, tap the video button to watch a demo</p>
+
+  <div class="phase-row">
+    <button class="phase-btn active" data-phase="0">Weeks 1-4</button>
+    <button class="phase-btn" data-phase="1">Weeks 5-8</button>
+    <button class="phase-btn" data-phase="2">Weeks 9-12</button>
+  </div>
+
+  <div id="days"></div>
+
+  <footer>All video links point to a specific tutorial found and checked for that exercise. If a link ever goes dead (videos do get removed from YouTube occasionally), search the exercise name plus "form tutorial" to find a replacement.</footer>
+</div>
+
+<div class="modal-overlay" id="modalOverlay">
+  <div class="modal">
+    <div class="modal-top">
+      <div>
+        <p class="modal-day" id="modalDay"></p>
+        <p class="modal-name" id="modalName"></p>
+      </div>
+      <button class="modal-close" id="modalClose" aria-label="Close">&times;</button>
+    </div>
+    <p class="modal-sets" id="modalSets"></p>
+    <p class="modal-form" id="modalForm"></p>
+    <a class="modal-video" id="modalVideo" href="#" target="_blank" rel="noopener">&#9654; Watch form video</a>
+  </div>
+</div>
+
+<script>
+const DATA = [
+  {day:"Sunday", focus:"Back & shoulders (pull)", ex:[
+    {n:"Bent-over KB row (2x8kg)", sets:["3 x 12","4 x 12","4 x 10, tempo pause"],
+     form:"Hinge at hips, back flat, knees slightly bent, KBs hanging straight down. Pull elbows back past torso, squeeze shoulder blades at the top. Avoid swinging, controlled pull and lower.",
+     video:"https://www.youtube.com/watch?v=GcuExSjDhok"},
+    {n:"KB single-arm row (8kg)", sets:["3 x 10/side","3 x 12/side","4 x 10/side, slower eccentric"],
+     form:"One hand or knee on a sturdy surface for support, back flat and parallel to floor. Row KB straight up toward hip, elbow close to body, squeeze at top.",
+     video:"https://www.youtube.com/watch?v=9Q9gwoXHn1o"},
+    {n:"Band pull-apart", sets:["3 x 15","3 x 15","4 x 15"],
+     form:"Arms straight out in front at shoulder height. Pull the band apart by squeezing shoulder blades together, arms stay straight. Slow on the return.",
+     video:"https://www.youtube.com/watch?v=AlTGQrDOd98"},
+    {n:"Band face pull", sets:["3 x 12","3 x 15","4 x 15"],
+     form:"Anchor band at chest height. Pull toward face, elbows flare out wide and high, squeeze shoulder blades together.",
+     video:"https://www.youtube.com/watch?v=AlTGQrDOd98"},
+    {n:"Superman hold (on mat)", sets:["3 x 20 sec","3 x 30 sec","4 x 30 sec"],
+     form:"Lie face down on the mat, arms extended overhead. Lift chest and legs together using lower back and glutes. Avoid over-arching the neck, look down not forward.",
+     video:"https://www.youtube.com/watch?v=8bbE64NuDTU"},
+    {n:"Band-assisted dead hang", sets:["2 x 10-15 sec","3 x 15-20 sec","3 x 20-25 sec"],
+     form:"Loop a resistance band over the bar, place one foot or knee in the loop for support. Hang with arms straight, shoulders engaged not collapsed. The band takes some of your bodyweight off, letting you build hang time and grip strength gradually.",
+     video:"https://www.youtube.com/watch?v=4yE-XGDWJPg"}
+  ]},
+  {day:"Monday", focus:"Chest & triceps (push)", ex:[
+    {n:"Push-ups (on board)", sets:["4 x max reps","4 x max reps","5 x max reps"],
+     form:"Hands slightly wider than shoulders, body in a straight line head to heels. Lower until chest nearly touches board, elbows at roughly 45 degrees from body. Push back up fully.",
+     video:"https://www.youtube.com/watch?v=I9fsqKE5XHo"},
+    {n:"KB floor press (2x8kg)", sets:["3 x 12","3 x 12, or dumbbells 10-12kg","4 x 10, dumbbells 12-15kg"],
+     form:"Lie on back, knees bent, KBs at chest level. Press straight up until arms extended, lower with control until upper arm lightly touches floor.",
+     video:"https://www.youtube.com/watch?v=zGqkWqza2z8"},
+    {n:"Band chest press", sets:["3 x 15","3 x 15","4 x 15"],
+     form:"Anchor band behind you around a sturdy pole or door anchor. Press forward at chest height until arms extended, squeeze chest, return slowly.",
+     video:"https://www.youtube.com/watch?v=4B6O2dHDjBw"},
+    {n:"Triceps dips (chair/bench)", sets:["3 x 10","3 x 12","4 x 12"],
+     form:"Hands on edge of seat behind you, legs extended out. Lower body bending elbows to about 90 degrees, elbows pointing backward. Keep hips close to the bench.",
+     video:"https://www.youtube.com/watch?v=AWz_7B1cch0"},
+    {n:"Band triceps pushdown", sets:["3 x 15","3 x 15","4 x 15"],
+     form:"Anchor band overhead over a door or bar. Elbows pinned to sides, extend forearms down until arms straight, control the return.",
+     video:"https://www.youtube.com/watch?v=Y3CDzx-oj3k"}
+  ]},
+  {day:"Tuesday", focus:"Legs & glutes", ex:[
+    {n:"Goblet squat (1x8kg)", sets:["4 x 12","4 x 15, or dumbbell 10-12kg","4 x 12, dumbbell 12-15kg"],
+     form:"Hold KB vertically at chest. Feet shoulder-width, toes slightly out. Sit hips back and down, chest upright, knees track over toes. Drive through heels to stand.",
+     video:"https://www.youtube.com/watch?v=aNDUbH_Uv4g"},
+    {n:"Walking lunges", sets:["3 x 10/leg","3 x 12/leg","4 x 10/leg, add ankle sandbags"],
+     form:"Step forward, lower back knee toward floor without touching, front knee stays over ankle. Push through front heel to step into the next lunge, torso upright.",
+     video:"https://www.youtube.com/watch?v=BenhAbJiTsw"},
+    {n:"Glute bridge (sandbag on hips)", sets:["3 x 15","3 x 15","4 x 12, single-leg version"],
+     form:"Lie on back, knees bent, feet flat, sandbag across hips. Drive through heels, lift hips to a straight line knees to shoulders, squeeze glutes at top.",
+     video:"https://www.youtube.com/watch?v=QMnPo0wncG8"},
+    {n:"KB Romanian deadlift (2x8kg)", sets:["3 x 12","3 x 12","4 x 10, dumbbells if progressed"],
+     form:"Feet hip-width, slight knee bend, KBs in front of thighs. Hinge at hips, push hips back, KBs slide down legs, back stays flat. Drive hips forward to stand.",
+     video:"https://www.youtube.com/watch?v=Uc5rP5xs7qQ"},
+    {n:"Band lateral walk", sets:["3 x 12 steps/side","3 x 15 steps/side","4 x 15 steps/side"],
+     form:"Band around ankles or above knees, slight squat position. Step sideways maintaining band tension, avoid standing fully upright between steps.",
+     video:"https://www.youtube.com/watch?v=rPTkrAJ6Fh4"}
+  ]},
+  {day:"Wednesday", focus:"Back & arms (pull 2)", ex:[
+    {n:"KB bent-over row, wide grip (2x8kg)", sets:["3 x 12","4 x 12","4 x 10, dumbbells if progressed"],
+     form:"Same setup as the bent-over row, but flare your elbows out to the sides as you pull instead of tucking them close to your body. This shifts emphasis toward the upper back and rear delts. Hinge at hips, back flat, squeeze shoulder blades at the top.",
+     video:"https://www.youtube.com/watch?v=GcuExSjDhok"},
+    {n:"KB bicep curl (2x8kg)", sets:["3 x 12","3 x 12, dumbbells 10kg","4 x 10, dumbbells 12kg"],
+     form:"Elbows pinned to sides throughout. Curl by bending elbow only, no swinging from shoulders or back. Squeeze at top, lower fully.",
+     video:"https://www.youtube.com/watch?v=Bk22u7e6G8E"},
+    {n:"Wide-grip band row", sets:["3 x 15","3 x 15","4 x 12"],
+     form:"Wider hand placement than standard row. Pull band toward chest, elbows flare outward, squeeze shoulder blades.",
+     video:"https://www.youtube.com/watch?v=_vkLQ8BMOqk"},
+    {n:"Hammer curl", sets:["3 x 10/side","3 x 12/side","4 x 10/side"],
+     form:"Same as bicep curl but palms face each other throughout, neutral grip. Also targets forearm and brachialis.",
+     video:"https://www.youtube.com/watch?v=4BRAf2BajWw"},
+    {n:"Band-assisted dead hang", sets:["2 x 10-15 sec","3 x 15-20 sec","3 x 20-25 sec"],
+     form:"Loop a resistance band over the bar, place one foot or knee in the loop for support. Hang with arms straight, shoulders engaged not collapsed. The band takes some of your bodyweight off, letting you build hang time and grip strength gradually.",
+     video:"https://www.youtube.com/watch?v=4yE-XGDWJPg"}
+  ]},
+  {day:"Thursday", focus:"Shoulders & core", ex:[
+    {n:"KB overhead press (1x8kg alt)", sets:["3 x 10/side","3 x 12/side","4 x 10/side, dumbbell 10-12kg"],
+     form:"Start KB at shoulder height, press straight overhead until arm fully extended, stacked over shoulder. Lower with control, keep core braced not arching lower back.",
+     video:"https://www.youtube.com/watch?v=bqDq1RXrTGg"},
+    {n:"Band lateral raise", sets:["3 x 15","3 x 15","4 x 15"],
+     form:"Stand on band, arms at sides. Raise out to sides until shoulder height, slight elbow bend, lower slowly.",
+     video:"https://www.youtube.com/watch?v=gfEyrmxbCbw"},
+    {n:"Band front raise", sets:["3 x 12","3 x 12","4 x 12"],
+     form:"Same setup, raise arms straight in front to shoulder height, control the descent.",
+     video:"https://www.youtube.com/shorts/9cDGMzxXVcU"},
+    {n:"Plank", sets:["3 x 30 sec","3 x 45 sec","4 x 45 sec"],
+     form:"Forearms on ground, straight line head to heels, core braced. Don't let hips sag or pike up, breathe normally.",
+     video:"https://www.youtube.com/watch?v=mwlp75MS6Rg"},
+    {n:"Bicycle crunches", sets:["3 x 20","3 x 25","4 x 25"],
+     form:"Lie on back, hands lightly behind head. Bring opposite elbow to opposite knee in a pedaling motion, lower back stays pressed to floor.",
+     video:"https://www.youtube.com/watch?v=tCSEga7I1l8"},
+    {n:"Side plank", sets:["2 x 20 sec/side","3 x 25 sec/side","3 x 30 sec/side"],
+     form:"Forearm on ground, body straight line sideways, hips lifted off floor. Don't let hips sag toward floor.",
+     video:"https://www.youtube.com/watch?v=iNbH7_edNI8"}
+  ]},
+  {day:"Friday", focus:"Full body + core", ex:[
+    {n:"KB swing (2-hand, 8kg)", sets:["3 x 15","4 x 15","4 x 20"],
+     form:"Feet shoulder-width, hinge at hips not a squat. Swing KB back between legs, drive hips forward explosively to chest height. Power from hips, not arms.",
+     video:"https://www.youtube.com/watch?v=YGnS0QVLcyQ"},
+    {n:"Renegade row (2x8kg)", sets:["3 x 8/side","3 x 10/side","4 x 10/side"],
+     form:"Plank position, one hand on each KB. Row one KB to hip while balancing on the other arm, keep hips square, alternate sides.",
+     video:"https://www.youtube.com/watch?v=JGDdzQdRZns"},
+    {n:"Squat to press (1x8kg)", sets:["3 x 10","3 x 12","4 x 10, dumbbell 10kg"],
+     form:"Combine goblet squat with overhead press. Squat down, as you stand drive the KB overhead in one fluid motion.",
+     video:"https://www.youtube.com/watch?v=HvhkqU4DTis"},
+    {n:"Mountain climbers", sets:["3 x 20/side","3 x 25/side","4 x 25/side"],
+     form:"Plank position, drive knees toward chest alternating quickly. Keep hips low and core braced, avoid hips bouncing up.",
+     video:"https://www.youtube.com/watch?v=ixxk9Qfn61o"},
+    {n:"Lying leg raise (on mat)", sets:["3 x 10","3 x 12","3 x 15, or slow tempo"],
+     form:"Lie on your back on the mat, legs straight (or knees slightly bent if straight legs strain your lower back), hands under glutes or flat by your sides. Lift both legs together until roughly vertical, keeping lower back pressed into the mat throughout. Lower slowly and with control until legs hover just above the floor, then repeat.",
+     video:"https://www.youtube.com/watch?v=sY2ZgV2Sj_s"}
+  ]}
+];
+
+let phase = 0;
+
+function renderDays() {
+  const daysEl = document.getElementById('days');
+  daysEl.innerHTML = DATA.map((d, di) => `
+    <div class="day-card">
+      <div class="day-header">
+        <span class="day-name">${d.day}</span>
+        <span class="day-focus">${d.focus}</span>
+      </div>
+      ${d.ex.map((e, ei) => `
+        <button class="ex-row" data-day="${di}" data-ex="${ei}">
+          <span class="ex-name">${e.n}</span>
+          <span class="ex-sets">${e.sets[phase]}<span class="chev">&#8250;</span></span>
+        </button>
+      `).join('')}
+    </div>
+  `).join('');
+
+  document.querySelectorAll('.ex-row').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const d = DATA[btn.dataset.day];
+      const e = d.ex[btn.dataset.ex];
+      openModal(d.day, e);
+    });
+  });
+}
+
+function openModal(day, e) {
+  document.getElementById('modalDay').textContent = day;
+  document.getElementById('modalName').textContent = e.n;
+  document.getElementById('modalSets').textContent = e.sets[phase];
+  document.getElementById('modalForm').textContent = e.form;
+  document.getElementById('modalVideo').href = e.video;
+  document.getElementById('modalOverlay').classList.add('open');
+}
+
+document.getElementById('modalClose').addEventListener('click', () => {
+  document.getElementById('modalOverlay').classList.remove('open');
+});
+document.getElementById('modalOverlay').addEventListener('click', (ev) => {
+  if (ev.target.id === 'modalOverlay') ev.currentTarget.classList.remove('open');
+});
+
+document.querySelectorAll('.phase-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    phase = Number(btn.dataset.phase);
+    document.querySelectorAll('.phase-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    renderDays();
+  });
+});
+
+renderDays();
+</script>
+</body>
+</html>
